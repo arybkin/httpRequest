@@ -10,7 +10,7 @@ pipeline {
                     println "Check zip functionality"
                     println "Check file existance"
                     println (fileExists("junit.zip"))
-                    zip zipFile: "junit.zip", archive: false, dir: "$OutputDir",  glob: "*.xml"
+                    zip zipFile: "junit.zip", archive: false, glob: "*.xml"
                     println "Check file existance"
                     println (fileExists("junit.zip"))
 
