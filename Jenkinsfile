@@ -20,7 +20,7 @@ pipeline {
                             acceptType: 'APPLICATION_JSON',
                             //contentType: 'APPLICATION_ZIP',
                             customHeaders:[[name:'Authorization', value:"bearer 7633547b-06d6-4399-a1f7-aecd0be8c814"]],
-                            uploadFile: "junit.zip",  multipartName: "junit.zip", timeout: 900
+                            uploadFile: "junit.zip",  multipartName: "junit.zip", timeout: 900, consoleLogResponseBody: true, responseHandle : "STRING"
                      println http_request.content
                      } catch(Exception ex){
                         println ex
