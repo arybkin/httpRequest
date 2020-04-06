@@ -3,7 +3,7 @@ pipeline {
     stages {
         stage('build') {
             steps {
-                withCredentials([string(credentialsId: 'UUID', variable: 'uuid')]) {
+                withCredentials([string(credentialsId: 'uuid', variable: 'UUID')]) {
                 script {
                     println "Hello world"
                     def rp_url = "https://beta.demo.reportportal.io/api/v1/arybkin_personal"
