@@ -9,9 +9,8 @@ node("master"){
 	Build()
 	NDependAnalysis()
 
+	PrepareTestPlans() // 10 parallel
 	StashTestData() // 9 parallel
-
-
 
 	LocalTests()
 	GenerateTestStages()
