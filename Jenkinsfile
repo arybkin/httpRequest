@@ -88,9 +88,9 @@ def PrepareTestPlans(){
 def ptp(row){
 	def testPlans = [:]
 	print row
-	testPlan[row] = {row}
-	testPlan[row*20] = {row*20}
-	return testPlan
+	testPlans[row] = {row}
+	testPlans[row*20] = {row*20}
+	return testPlans
 }
 
 def StashTestData(){
