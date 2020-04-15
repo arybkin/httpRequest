@@ -124,6 +124,7 @@ def Map MinimalTestValidation = [
 
 
 configuringworkflow()
+NotifyBitbucket()
 try{
 	def parallelizedWork = [:]
 	parallelizedWork << validateCode()
@@ -247,6 +248,7 @@ def GenerateTestStages(codeTestMap){
 		println "Generate somth"
 		codeTestMap << generateSingleNodeTest(BaseTestValidationSingleNode)
 		codeTestMap << generateMultiNodeTest(BaseTestValidationMultiNode)
+		codeTestMap << generateMultiNodeTest(ACTestValidation)
 		return  codeTestMap
 	}
 }
@@ -265,6 +267,7 @@ def generateMultiNodeTest(Map testPlan){
 	multiNodeTestMap=[:]
 	testPlan.each { group ->
 		group.value["categories"].each { category ->
+			println category
 			for (int i = 0; i < category.value["size"]; i++) {
 				// variable i prints always value Threads, whereas index increases from 0 to x Threads
 				int index = i
