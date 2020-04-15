@@ -202,47 +202,49 @@ def NDependAnalysis(){
 
 def PrepareTestPlans(){
 	stage("Prepare Test Plans") {
-		def parallelizedWork = [:]
-		parallelizedWork << ptp(1)
-		parallelizedWork << ptp(2)
-		parallelizedWork << ptp(3)
-		parallelizedWork << ptp(4)
-		parallelizedWork << ptp(5)
-		parallelizedWork << ptp(6)
-		parallelizedWork << ptp(7)
-		parallelizedWork << ptp(8)
-		parallelizedWork << ptp(9)
-		parallelizedWork << ptp(10)
-		parallel parallelizedWork
+		def parallelTestFileExtraction = [:]
+		parallelTestFileExtraction << generateTestPlans(ACTestValidation)
+		parallelTestFileExtraction << generateTestPlans(BaseTestValidationMultiNode)
+		parallelTestFileExtraction << generateTestPlans(BaseTestValidationSingleNode)
+		parallelTestFileExtraction << generateTestPlans(MinimalTestValidation)
+
+		// run the extracdeletePathPSt test lists steps in parallel
+		parallel parallelTestFileExtraction
 		println("log")
 	}
 }
 
-def ptp(row){
-	def testPlans = [:]
-	print row
-	testPlans[row] = {row}
+def generateTestPlans(Map TestCategories){
+	testPlans=[:]
+	TestCategories.each { group ->
+		group.value["categories"].each { category ->
+			testPlans["${category.key}"] = {
+				println("Some plan")
+			}
+		}
+	}
 	return testPlans
 }
 
 def StashTestData(){
 	stage('Stash Test Data') {
 		parallel (
-				'1':{println("log")},
-				'2':{println("log")},
-				'3':{println("log")},
-				'4':{println("log")},
-				'5':{println("log")},
-				'6':{println("log")},
-				'7':{println("log")},
-				'8':{println("log")},
-				'9':{println("log")}
+				'stashbuild':{println("stashbuild")},
+				'stashtestdata':{println("stashtestdata")},
+				'stashACtest':{println("stashACtest")},
+				'stashUnittest':{println("stashUnittest")},
+				'stashTestOutputStructure':{println("stashTestOutputStructure")},
+				'stashinfrastructure':{println("stashinfrastructure")},
+				'stashbin':{println("stashbin")},
+				'stashRPAc':{println("stashRPAc")},
+				'stashRPNunit':{println("stashRPNunit")}
 		)
 	}
 }
 
 def GenerateTestStages(codeTestMap){
 	stage('Generate Test Stages') {
+		println "Generate somth"
 		codeTestMap << generateSingleNodeTest(BaseTestValidationSingleNode)
 		codeTestMap << generateMultiNodeTest(BaseTestValidationMultiNode)
 		return  codeTestMap
@@ -335,7 +337,7 @@ def parallelLimited(Map<String, Closure> map, int maxConcurrent) {
 			while(thing == null) {
 				thing = latch.pollFirst();
 				if(thing == null) {
-					sleep time: 60, unit: 'SECONDS'
+					sleep time: 2, unit: 'SECONDS'
 				}
 			}
 
