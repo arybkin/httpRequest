@@ -9,6 +9,8 @@ node("master"){
 	Build()
 	NDependAnalysis()
 
+	StashTestData() // 9 parallel
+
 	def parallelizedWork = [:]
 	parallelizedWork << PrepareTestPlans(1)
 	parallelizedWork << PrepareTestPlans(2)
@@ -17,8 +19,12 @@ node("master"){
 	parallelizedWork << PrepareTestPlans(5)
 	parallelizedWork << PrepareTestPlans(6)
 	parallelizedWork << PrepareTestPlans(7)
+	parallelizedWork << PrepareTestPlans(8)
+	parallelizedWork << PrepareTestPlans(9)
+	parallelizedWork << PrepareTestPlans(10)
 	parallel parallelizedWork
-	StashTestData() // 9 parallel
+	parallelLimited(parallelizedWork, 10)
+
 	LocalTests()
 	GenerateTestStages()
 
