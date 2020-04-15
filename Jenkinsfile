@@ -8,7 +8,16 @@ node("master"){
 	UpdatingChangeData()
 	Build()
 	NDependAnalysis()
-	PrepareTestPlans() //10 parallel
+
+	def parallelizedWork = [:]
+	parallelizedWork << PrepareTestPlans(1)
+	parallelizedWork << PrepareTestPlans(2)
+	parallelizedWork << PrepareTestPlans(3)
+	parallelizedWork << PrepareTestPlans(4)
+	parallelizedWork << PrepareTestPlans(5)
+	parallelizedWork << PrepareTestPlans(6)
+	parallelizedWork << PrepareTestPlans(7)
+	parallel parallelizedWork
 	StashTestData() // 9 parallel
 	LocalTests()
 	GenerateTestStages()
@@ -65,15 +74,25 @@ def NDependAnalysis(){
 
 }
 
-def PrepareTestPlans(){
-	stage('Prepare Test Plans') {
+def PrepareTestPlans(row){
+	stage("Prepare Test Plans $row") {
 		println("log")
 	}
 }
 
 def StashTestData(){
 	stage('Stash Test Data') {
-		println("log")
+		parallel (
+				'1':{println("log")},
+				'2':{println("log")},
+				'3':{println("log")},
+				'4':{println("log")},
+				'5':{println("log")},
+				'6':{println("log")},
+				'7':{println("log")},
+				'8':{println("log")},
+				'9':{println("log")}
+		)
 	}
 }
 
