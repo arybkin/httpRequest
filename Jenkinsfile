@@ -16,10 +16,14 @@ node("master"){
 	GenerateTestStages()
 
 	///
-	Documentation()
-	OnlyUnitTests()
-	//54
-	ParallelTests()
+	def parallelizedWork = [:]
+	parallelizedWork<<Documentation()
+	parallelizedWork<<OnlyUnitTests()
+	parallelizedWork<<ParallelTests()//54
+	parallel parallelizedWork
+
+
+
 	///
 	Merge()
 }
@@ -89,7 +93,6 @@ def ptp(row){
 	def testPlans = [:]
 	print row
 	testPlans[row] = {row}
-	testPlans[row*20] = {row*20}
 	return testPlans
 }
 
@@ -124,12 +127,14 @@ def LocalTests(){
 def OnlyUnitTests(){
 	stage("OnlyUnitTests") {
 		println("log")
+		return [:]
 	}
 }
 
 def ParallelTests(){
 	stage("ParallelTests") {
 		println("log")
+		return [:]
 	}
 }
 
@@ -139,6 +144,7 @@ def Documentation(){
 		LoadingScripts()
 		BuildDocumentation()
 		AnalyzeDocumentation()
+		return [:]
 	}
 }
 
@@ -158,4 +164,38 @@ def NotifyBitbucket(){
 	stage('Notify Bitbucket') {
 		println("log")
 	}
+}
+
+def parallelLimited(Map<String, Closure> map, int maxConcurrent) {
+	def shuffledMap = shuffleMap(map)
+
+	latch = new java.util.concurrent.LinkedBlockingDeque(maxConcurrent)
+
+	// put a number of items into the queue to allow that number of branches to run
+	for (int i = 0; i < maxConcurrent; i++) {
+		latch.offer("$i")
+	}
+
+	def work = [:]
+
+	shuffledMap.each { b ->
+		work[b.key] = {
+			def thing = null
+
+			while(thing == null) {
+				thing = latch.pollFirst();
+				if(thing == null) {
+					sleep time: 60, unit: 'SECONDS'
+				}
+			}
+
+			try {
+				b.value.call()
+			} finally {
+				latch.offer(thing)
+			}
+		}
+	}
+
+	parallel work
 }
