@@ -1,31 +1,157 @@
 #!/usr/bin/env groovy
+import groovy.transform.Field
 
-node("master"){
-	configuringworkflow()
-	NotifyBitbucket()
-	CheckoutSCM()
-	LoadingScripts()
-	UpdatingChangeData()
-	Build()
-	NDependAnalysis()
+@Field
+String acBaseFilter = "cat!~Ignore&&cat!~Quarantine&&cat!~Unstable&&cat!~Stabilizing&&cat!~Performance&&cat!~Telerik&&cat!~Memory"
+// Filter for Acceptance Test Assemblies
+@Field
+String nuBaseFilter = "cat!~Ignore&&cat!~Quarantine&&cat!~Performance"
+@Field
+Map ACTestValidation = [
+		"ac": [
+				"settings": [
+						"path": "AcceptanceTests",
+						"pattern": "*AcceptanceTests*.dll",
+						"timeout": 40,
+						"description": "Multinode Acceptance Tests"
+				],
+				"categories": [
+						"UiComponentTest": [
+								"size": 8,
+								"filter": "cat==UiComponentTest&&${acBaseFilter}",
+								"nodeLabel": 'master',
+						],
+						"UILessTest": [
+								"size": 40,
+								"filter": "cat==UILessTest&&${acBaseFilter}",
+								"nodeLabel": 'master',
+						],
+						"TestStack.White": [
+								"size": 5,
+								"filter": "cat==TestStack.White&&${acBaseFilter}",
+								"nodeLabel": 'master',
+						],
+						"ComponentTest": [
+								"size": 1,
+								"filter": "cat==ComponentTest&&${acBaseFilter}",
+								"nodeLabel": 'master',
+						],
+				]
+		]
+]
 
-	PrepareTestPlans() // 10 parallel
-	StashTestData() // 9 parallel
+@Field
+Map BaseTestValidationMultiNode = [
+		"nu": [
+				"settings": [
+						"path": "NUnit",
+						"pattern": "*.Test.NUnit*.dll",
+						"timeout": 10,
+						"description": "Multinode Unit Tests"
+				],
+				"categories": [
+						"OnlyUnitTest": [
+								"size": 1,
+								"filter": "cat=~UnitTest&&cat!~Local&&${nuBaseFilter}",
+								"nodeLabel": 'master',
+						],
+				]
+		]
+]
+@Field
+Map BaseTestValidationSingleNode = [
+		"ac": [
+				"settings": [
+						"path": "AcceptanceTests",
+						"pattern": "*AcceptanceTests*.dll",
+						"timeout": 20,
+						"nodeLabel": 'master', // not used, defined in script below
+						"description": "Singlenode Acceptance Tests"
+				],
+				"categories": [
+						"ArchitecturalTest": [
+								"size": 1,
+								"filter": "cat==ArchitecturalTest&&${acBaseFilter}"
+						],
+						"BestPracticesTest": [
+								"size": 1,
+								"filter": "cat==BestPracticesTest&&${acBaseFilter}"
+						],
+						"UndefinedUITest": [
+								"size": 1,
+								"filter": "cat==UndefinedUITest&&${acBaseFilter}"
+						],
+				]
+		],
+		"nu": [
+				"settings": [
+						"path": "NUnit",
+						"pattern": "*.Test.NUnit*.dll",
+						"timeout": 10,
+						"nodeLabel": 'master', // not used, defined in script below
+						"description": "Singlenode Unit Tests"
+				],
+				"categories": [
+						"UnitComponentTests": [
+								"size": 1,
+								"filter": "cat!~UnitTest&&cat!~Local&&${nuBaseFilter}"
+						]
+				]
+		]
+]
+@Field
+def Map MinimalTestValidation = [
+		"nu": [
+				"settings": [
+						"path": "NUnit",
+						"pattern": "*.Test.NUnit*.dll",
+						"timeout": 10,
+						"description": "Localnode Unit Tests"
+				],
+				"categories": [
+						"LocalUnitTests": [
+								"size": 1,
+								"filter": "cat=~Local&&${nuBaseFilter}"
+						],
+				]
+		]
+]
 
-	LocalTests()
-	GenerateTestStages()
 
-	///
+
+
+configuringworkflow()
+try{
 	def parallelizedWork = [:]
-	parallelizedWork<<Documentation()
-	parallelizedWork<<OnlyUnitTests()
-	parallelizedWork<<ParallelTests()//54
-	parallel parallelizedWork
-
-
-
+	parallelizedWork << validateCode()
+	parallelizedWork << validateDoxygen()
+	def maxParallelWork = (int) ((parallelizedWork.size() / 2) + 1)
+	parallelLimited(parallelizedWork, maxParallelWork)
 	///
 	Merge()
+}
+catch(e){
+	whatIsMyBuildState()
+	currentBuild.result = 'FAILURE'
+	throw e
+}
+finally {
+	//	sendEmail()
+}
+
+def validateCode(){
+	Map codeTestMap=[:]
+	node("mastert"){
+		CheckoutSCM()
+		LoadingScripts()
+		UpdatingChangeData()
+		Build()
+		NDependAnalysis()
+		PrepareTestPlans()
+		StashTestData()
+		LocalTests()
+		GenerateTestStages(codeTestMap)
+	}
 }
 
 def configuringworkflow(){
@@ -112,11 +238,43 @@ def StashTestData(){
 	}
 }
 
-def GenerateTestStages(){
+def GenerateTestStages(codeTestMap){
 	stage('Generate Test Stages') {
-		println("log")
+		codeTestMap << generateSingleNodeTest(BaseTestValidationSingleNode)
+		codeTestMap << generateMultiNodeTest(BaseTestValidationMultiNode)
+		return  codeTestMap
 	}
 }
+def generateSingleNodeTest(Map testPlan){
+	singleNodeTestMap = [:]
+	def name = testPlan[testPlan.find().key]["categories"].find().key
+	singleNodeTestMap[name] = {
+		stage(name){
+			println name
+		}
+	}
+	return singleNodeTestMap
+}
+
+def generateMultiNodeTest(Map testPlan){
+	multiNodeTestMap=[:]
+	testPlan.each { group ->
+		group.value["categories"].each { category ->
+			for (int i = 0; i < category.value["size"]; i++) {
+				// variable i prints always value Threads, whereas index increases from 0 to x Threads
+				int index = i
+				multiNodeTestMap["${group.key}: ${category.key} node-${index}"] = {
+					stage("${category.key} node-${index}") {
+						println("Run multy node")
+					}
+				}
+			}
+		}
+	}
+
+	return multiNodeTestMap
+}
+
 
 def LocalTests(){
 	stage("local-tests") {
@@ -124,27 +282,15 @@ def LocalTests(){
 	}
 }
 
-def OnlyUnitTests(){
-	stage("OnlyUnitTests") {
-		println("log")
-		return [:]
-	}
-}
-
-def ParallelTests(){
-	stage("ParallelTests") {
-		println("log")
-		return [:]
-	}
-}
-
-def Documentation(){
-	stage("Build Documentation"){
-		CheckoutSCM()
-		LoadingScripts()
-		BuildDocumentation()
-		AnalyzeDocumentation()
-		return [:]
+def validateDoxygen(){
+	def doxygenMap=[:]
+	doxygenMap["Build Documentation"] = {
+		node("master") {
+			CheckoutSCM()
+			LoadingScripts()
+			BuildDocumentation()
+			AnalyzeDocumentation()
+		}
 	}
 }
 
@@ -198,4 +344,19 @@ def parallelLimited(Map<String, Closure> map, int maxConcurrent) {
 	}
 
 	parallel work
+}
+
+def shuffleMap(Map map) {
+	def shuffledMap = [:]
+
+	def keys = new ArrayList(map.keySet());
+	Collections.shuffle(keys);
+	for (Object o : keys) {
+		shuffledMap[o] = map[o]
+	}
+	return shuffledMap
+}
+
+def whatIsMyBuildState() {
+	println("~~~ Current Build : Current Result = ${currentBuild.currentResult} || Result = ${currentBuild.result} ~~~")
 }
