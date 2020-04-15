@@ -83,6 +83,7 @@ def NDependAnalysis(){
 def PrepareTestPlans(row){
 	stage("Prepare Test Plans $row") {
 		println("log")
+		return row
 	}
 }
 
