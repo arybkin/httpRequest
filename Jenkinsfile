@@ -2,6 +2,9 @@
 import groovy.transform.Field
 
 @Field
+String nodeName = 'master'
+
+@Field
 String acBaseFilter = "cat!~Ignore&&cat!~Quarantine&&cat!~Unstable&&cat!~Stabilizing&&cat!~Performance&&cat!~Telerik&&cat!~Memory"
 // Filter for Acceptance Test Assemblies
 @Field
@@ -19,22 +22,22 @@ Map ACTestValidation = [
 						"UiComponentTest": [
 								"size": 8,
 								"filter": "cat==UiComponentTest&&${acBaseFilter}",
-								"nodeLabel": 'master',
+								"nodeLabel": nodeName,
 						],
 						"UILessTest": [
 								"size": 40,
 								"filter": "cat==UILessTest&&${acBaseFilter}",
-								"nodeLabel": 'master',
+								"nodeLabel": nodeName,
 						],
 						"TestStack.White": [
 								"size": 5,
 								"filter": "cat==TestStack.White&&${acBaseFilter}",
-								"nodeLabel": 'master',
+								"nodeLabel": nodeName,
 						],
 						"ComponentTest": [
 								"size": 1,
 								"filter": "cat==ComponentTest&&${acBaseFilter}",
-								"nodeLabel": 'master',
+								"nodeLabel": nodeName,
 						],
 				]
 		]
@@ -53,7 +56,7 @@ Map BaseTestValidationMultiNode = [
 						"OnlyUnitTest": [
 								"size": 1,
 								"filter": "cat=~UnitTest&&cat!~Local&&${nuBaseFilter}",
-								"nodeLabel": 'master',
+								"nodeLabel": nodeName,
 						],
 				]
 		]
@@ -65,7 +68,7 @@ Map BaseTestValidationSingleNode = [
 						"path": "AcceptanceTests",
 						"pattern": "*AcceptanceTests*.dll",
 						"timeout": 20,
-						"nodeLabel": 'master', // not used, defined in script below
+						"nodeLabel": nodeName, // not used, defined in script below
 						"description": "Singlenode Acceptance Tests"
 				],
 				"categories": [
@@ -88,7 +91,7 @@ Map BaseTestValidationSingleNode = [
 						"path": "NUnit",
 						"pattern": "*.Test.NUnit*.dll",
 						"timeout": 10,
-						"nodeLabel": 'master', // not used, defined in script below
+						"nodeLabel": nodeName, // not used, defined in script below
 						"description": "Singlenode Unit Tests"
 				],
 				"categories": [
@@ -141,7 +144,7 @@ finally {
 
 def validateCode(){
 	Map codeTestMap=[:]
-	node("mastert"){
+	node(nodeName){
 		CheckoutSCM()
 		LoadingScripts()
 		UpdatingChangeData()
@@ -285,13 +288,14 @@ def LocalTests(){
 def validateDoxygen(){
 	def doxygenMap=[:]
 	doxygenMap["Build Documentation"] = {
-		node("master") {
+		node(nodeName) {
 			CheckoutSCM()
 			LoadingScripts()
 			BuildDocumentation()
 			AnalyzeDocumentation()
 		}
 	}
+	return doxygenMap
 }
 
 def BuildDocumentation(){
