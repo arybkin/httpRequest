@@ -11,19 +11,7 @@ node("master"){
 
 	StashTestData() // 9 parallel
 
-	def parallelizedWork = [:]
-	parallelizedWork << PrepareTestPlans(1)
-	parallelizedWork << PrepareTestPlans(2)
-	parallelizedWork << PrepareTestPlans(3)
-	parallelizedWork << PrepareTestPlans(4)
-	parallelizedWork << PrepareTestPlans(5)
-	parallelizedWork << PrepareTestPlans(6)
-	parallelizedWork << PrepareTestPlans(7)
-	parallelizedWork << PrepareTestPlans(8)
-	parallelizedWork << PrepareTestPlans(9)
-	parallelizedWork << PrepareTestPlans(10)
-	parallel parallelizedWork
-	parallelLimited(parallelizedWork, 10)
+
 
 	LocalTests()
 	GenerateTestStages()
@@ -80,11 +68,30 @@ def NDependAnalysis(){
 
 }
 
-def PrepareTestPlans(row){
-	stage("Prepare Test Plans $row") {
+def PrepareTestPlans(){
+	stage("Prepare Test Plans") {
+		def parallelizedWork = [:]
+		parallelizedWork << ptp(1)
+		parallelizedWork << ptp(2)
+		parallelizedWork << ptp(3)
+		parallelizedWork << ptp(4)
+		parallelizedWork << ptp(5)
+		parallelizedWork << ptp(6)
+		parallelizedWork << ptp(7)
+		parallelizedWork << ptp(8)
+		parallelizedWork << ptp(9)
+		parallelizedWork << ptp(10)
+		parallel parallelizedWork
 		println("log")
-		return row
 	}
+}
+
+def ptp(row){
+	def testPlans = [:]
+	print row
+	testPlan[row] = {row}
+	testPlan[row*20] = {row*20}
+	return testPlan
 }
 
 def StashTestData(){
