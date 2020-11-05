@@ -126,6 +126,9 @@ def Map MinimalTestValidation = [
 configuringworkflow()
 NotifyBitbucket()
 try{
+	println currentBuild.displayName
+	println currentBuild.description
+	println currentBuild.number
 	def parallelizedWork = [:]
 	parallelizedWork << validateCode()
 	parallelizedWork << validateDoxygen()
